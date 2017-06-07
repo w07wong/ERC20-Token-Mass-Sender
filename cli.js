@@ -53,11 +53,24 @@ class CLI {
         return parser.parseArgs(args);
     }
 
-    checkFileValidity(path) {
-        fs.readFile(path, (err, data) => {
-            if(err) throw err;
-            console.log(data);
-        });
+    getWallet(wallet) {
+        let iniData;
+        try {
+            iniData = fs.readFileSync(wallet || 'default', 'utf-8');
+        } catch (err) {
+            //Only throw on failure to read if wallet file was explicitly specified
+            throw new Error("couldn't read wallet file " + wallet);
+        }
+    }
+
+    getCSV(csv) {
+        let iniData;
+        try {
+            iniData = fs.readFileSync(csv || 'default', 'utf-8');
+        } catch (err) {
+            //Only throw on failure to read if wallet file was explicitly specified
+            throw new Error("couldn't read csv file " + csv);
+        }
     }
 
     run(testArgString) {
@@ -71,10 +84,11 @@ class CLI {
           offset: csv_offset,
         };
     }
-
     // Parse command line args
-    let args = this.getArgs(testArgString && testArgString.split(' '));
+    //let args = this.getArgs(testArgString && testArgString.split(' '));
 }
+
+export default CLI;
 
  /*program
   .arguments('<file>')
