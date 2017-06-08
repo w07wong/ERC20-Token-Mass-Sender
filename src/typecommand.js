@@ -4,6 +4,8 @@ var ini = require('ini');
 var _ = require('lodash');
 var pjson = require('../package.json');
 var fastCSV = require('fast-csv');
+var Web3 = require('web3');
+var web3 = new Web3();
 //TODO: implment Web3
 
 const TEST_VERSION = pjson.version;
@@ -106,9 +108,9 @@ class TypeCommand {
         //let defaultBatchSize = config.csv.length/2
 
         let config = {
-            wall: '',
+            wall: '../resources/UTC--2017-06-08T23-08-53.501Z--fb9119d94ec08285ba7c06bcdb370b3f81bf82f9',
             csv: '../resources/default.csv',
-            addr: '0x03efee7c710ad3b2ca1301309ee0dbc134acbb26', // EXMPL',
+            addr: '0xfB9119D94eC08285bA7C06bCDb370B3f81bF82F9', // EXMPL',
             deci: '',
             offs: '0',
             batc: '0',
@@ -133,8 +135,6 @@ class TypeCommand {
 
         fs.writeFileSync('../resources/config.conf', ini.stringify(config, {}))
 
-        console.log(config.wall);
-
         //TODO: read JSON container and store vars
         //ASSUMPTION: CSV file is formatted as such: address, tokens, address, tokens (no spaces)
         var csvTest = fs.createReadStream(config.csv)
@@ -152,8 +152,6 @@ class TypeCommand {
                         _csvAmounts.push(_csvData[i]);
                     }
                 }
-
-                console.log(_csvAddresses);
             });
 
         //TODO: send tokens using Web 3 and use ranges
