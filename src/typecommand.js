@@ -67,7 +67,7 @@ class TypeCommand {
         parser.addArgument(
           ['--offs'], {
             help: 'Specify offset in CSV file, to start sendings from (default: 0)',
-            metavar: 'path',
+            metavar: 'num',
           }
         );
 
@@ -75,7 +75,7 @@ class TypeCommand {
         parser.addArgument(
           ['--batc'], {
             help: 'Specify batch size (how many transactions to send, default: to the end of CSV file)',
-            metavar: 'path',
+            metavar: 'num',
           }
         );
 
@@ -130,6 +130,8 @@ class TypeCommand {
                 config[k] = args[k];
             }
         });
+
+        fs.writeFileSync('../resources/config.conf', ini.stringify(config, {}))
 
         console.log(config.wall);
 
