@@ -26,7 +26,7 @@ class TypeCommand {
         //configuration
         parser.addArgument(
           ['--conf'], {
-            help: 'Specify configuration file (default: ../resources/test.conf)',
+            help: 'Specify configuration file (default: ../resources/config.conf)',
             metavar: 'path',
           }
         );
@@ -87,8 +87,7 @@ class TypeCommand {
     getConfig(configFile) {
         let iniData;
         try {
-            //TODO: Add conf.ini file
-            initialData = fs.readFileSync(configFile || '/lib/test.conf', 'utf-8');
+            iniData = fs.readFileSync(configFile || '../resources/config.conf', 'utf-8');
         } catch (err) {
             //Only throw on failure to read if configuration file was expilicitly specified
             if(configFile) {
@@ -103,19 +102,22 @@ class TypeCommand {
 
         //TODO: Add defaults
         //defaults that get overriden by command line entries
+
+        //let defaultBatchSize = config.csv.length/2
+
         let config = {
             wall: '',
             csv: '../resources/default.csv',
-            addr: '',
+            addr: '0x03efee7c710ad3b2ca1301309ee0dbc134acbb26', // EXMPL',
             deci: '',
-            offs: '',
-            batc: '',
+            offs: '0',
+            batc: '0',
         };
 
         //Parse command line args
         let args = this.getArgs(argString && argString.split(' '));
 
-        //Get config file (depends on command line arg -conf)
+        //Get config file (depends on command line arg --conf)
         let parsedConfig = this.getConfig(args.conf);
 
         //Config file overrides default options listed in this method
@@ -128,6 +130,8 @@ class TypeCommand {
                 config[k] = args[k];
             }
         });
+
+        console.log(config.wall);
 
         //TODO: read JSON container and store vars
         //ASSUMPTION: CSV file is formatted as such: address, tokens, address, tokens (no spaces)
