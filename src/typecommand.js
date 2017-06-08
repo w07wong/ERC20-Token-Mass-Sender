@@ -8,6 +8,11 @@ var fastCSV = require('fast-csv');
 
 const TEST_VERSION = pjson.version;
 
+let _csvData = [];
+let _csvAddresses = [];
+let _csvAmounts = [];
+let _csvIndex = 0;
+
 class TypeCommand {
     constructor() {}
 
@@ -21,7 +26,7 @@ class TypeCommand {
         //configuration
         parser.addArgument(
           ['--conf'], {
-            help: 'Specify configuration file (default: /lib/test.conf)',
+            help: 'Specify configuration file (default: ../resources/test.conf)',
             metavar: 'path',
           }
         );
@@ -100,7 +105,7 @@ class TypeCommand {
         //defaults that get overriden by command line entries
         let config = {
             wall: '',
-            csv: '',
+            csv: '../resources/default.csv',
             addr: '',
             deci: '',
             offs: '',
@@ -125,22 +130,25 @@ class TypeCommand {
         });
 
         //TODO: read JSON container and store vars
-        //TODO: read CSV and store vars & verify if csv file is readable
+        //ASSUMPTION: CSV file is formatted as such: address, tokens, address, tokens (no spaces)
         var csvTest = fs.createReadStream(config.csv)
             .pipe(fastCSV())
             .on('data', function(data) {
-                //do something with the data
-                //store in vars
+                //Comma delimiter separates values in CSV.  Values are stored in an array.
+                _csvData = data;
             })
-            //TODO: send error message if file is not readable
             .on('end', function(data) {
-                //do something
-                //set default variables for any empty things?  maybe amounts are empty so just fill with 0
-            });
+                //Values are separated into their according array.  Assuming the file is formatted as address,token,address,token
+                for(var i = 0; i < _csvData.length; i++) {
+                    if(i%2 === 0) {
+                        _csvAddresses.push(_csvData[i]);
+                    } else {
+                        _csvAmounts.push(_csvData[i]);
+                    }
+                }
 
-       /*csvTest.on('error', function(err) {
-            console.log("Couldn't read CSV file");
-        });*/
+                console.log(_csvAddresses);
+            });
 
         //TODO: send tokens using Web 3 and use ranges
     }
