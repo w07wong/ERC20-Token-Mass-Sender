@@ -91,6 +91,14 @@ class TypeCommand {
           }
         );
 
+        //ready to run transaction?
+        parser.addArgument(
+          ['--tReady'], {
+            help: 'Set to true if ready to begin sending',
+            metavar: 'string',
+          }
+        );
+
         //TODO: add password argument
 
         return parser.parseArgs(args);
@@ -109,6 +117,12 @@ class TypeCommand {
         return iniData ? ini.parse(iniData) : {};
     }
 
+    beginTransaction() {
+        //TODO: send tokens using Web 3 and use ranges
+        for(var i = 0; i < _csvAddresses.length; i++) {
+
+        }
+    }
 
     run(argString) {
 
@@ -122,6 +136,7 @@ class TypeCommand {
             deci: '',
             offs: '0',
             batc: '',
+            tReady: 'false',
         };
 
         //Parse command line args
@@ -162,8 +177,10 @@ class TypeCommand {
                 }
             });
 
-        //TODO: send tokens using Web 3 and use ranges
-
+        //if the user is ready, set a arg to true, then run transaction method
+        if(config.tReady.toLowerCase() === 'true') {
+            beginTransaction();
+        }
     }
 }
 
