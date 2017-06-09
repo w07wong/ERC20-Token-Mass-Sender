@@ -6,6 +6,16 @@ var pjson = require('../package.json');
 var fastCSV = require('fast-csv');
 var Web3 = require('web3');
 var web3 = new Web3();
+
+if (typeof web3 !== 'undefined') {
+  web3 = new Web3(web3.currentProvider);
+} else {
+  // set the provider you want from Web3.providers
+  web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+}
+
+var eth = web3.eth;
+
 //TODO: implment Web3
 
 const TEST_VERSION = pjson.version;
@@ -105,15 +115,13 @@ class TypeCommand {
         //TODO: Add defaults
         //defaults that get overriden by command line entries
 
-        //let defaultBatchSize = config.csv.length/2
-
         let config = {
             wall: '../resources/UTC--2017-06-08T23-08-53.501Z--fb9119d94ec08285ba7c06bcdb370b3f81bf82f9',
             csv: '../resources/default.csv',
             addr: '0xfB9119D94eC08285bA7C06bCDb370B3f81bF82F9', // EXMPL',
             deci: '',
             offs: '0',
-            batc: '0',
+            batc: '',
         };
 
         //Parse command line args
@@ -135,7 +143,7 @@ class TypeCommand {
 
         fs.writeFileSync('../resources/config.conf', ini.stringify(config, {}))
 
-        //TODO: read JSON container and store vars
+        //TODO: read JSON container and login
         //ASSUMPTION: CSV file is formatted as such: address, tokens, address, tokens (no spaces)
         var csvTest = fs.createReadStream(config.csv)
             .pipe(fastCSV())
@@ -155,6 +163,7 @@ class TypeCommand {
             });
 
         //TODO: send tokens using Web 3 and use ranges
+
     }
 }
 
