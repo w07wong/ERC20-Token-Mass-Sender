@@ -6,13 +6,9 @@ var pjson = require('../package.json');
 var fastCSV = require('fast-csv');
 var Web3 = require('web3');
 var web3 = new Web3();
-
-if (typeof web3 !== 'undefined') {
-  web3 = new Web3(web3.currentProvider);
-} else {
-  // set the provider you want from Web3.providers
-  web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
-}
+var config = require('../config.js');
+var eToken = web3.eth.contract(config.abi).at(config.address);
+web3.setProvider(new web3.providers.HttpProvider(config.gethNode));
 
 var eth = web3.eth;
 
@@ -54,7 +50,7 @@ class TypeCommand {
         //csv
         parser.addArgument(
           ['--csv'], {
-            help: 'Specify CSV file with Ethereum addresses and amounts',
+            help: 'Specify CSV file with Ethereum addresses and amounts. \nCSV must be formatted like so: "address,amount,address,amount" which each amount corresponding to the preceeding address.',
             metavar: 'path',
           }
         );
@@ -129,7 +125,7 @@ class TypeCommand {
         //TODO: Add defaults
         //defaults that get overriden by command line entries
 
-        let config = {
+        let conf = {
             wall: '../resources/UTC--2017-06-08T23-08-53.501Z--fb9119d94ec08285ba7c06bcdb370b3f81bf82f9',
             csv: '../resources/default.csv',
             addr: '0xfB9119D94eC08285bA7C06bCDb370B3f81bF82F9', // EXMPL',
@@ -146,7 +142,7 @@ class TypeCommand {
         let parsedConfig = this.getConfig(args.conf);
 
         //Config file overrides default options listed in this method
-        _.assign(config, parsedConfig);
+        _.assign(conf, parsedConfig);
 
         //Command line args override config file args - keys creates an array of the input
         _.keys(args).forEach(k => {
@@ -160,7 +156,7 @@ class TypeCommand {
 
         //TODO: read JSON container and login
         //ASSUMPTION: CSV file is formatted as such: address, tokens, address, tokens (no spaces)
-        var csvTest = fs.createReadStream(config.csv)
+        var csvTest = fs.createReadStream(conf.csv)
             .pipe(fastCSV())
             .on('data', function(data) {
                 //Comma delimiter separates values in CSV.  Values are stored in an array.
@@ -176,6 +172,8 @@ class TypeCommand {
                     }
                 }
             });
+
+        //TODO: Check for no file error
 
         //if the user is ready, set a arg to true, then run transaction method
         if(config.tReady.toLowerCase() === 'true') {
