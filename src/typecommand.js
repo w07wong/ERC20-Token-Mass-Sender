@@ -1,3 +1,4 @@
+'use strict';
 var ArgumentParser = require('argparse').ArgumentParser;
 var fs = require('fs');
 var ini = require('ini');
@@ -6,9 +7,9 @@ var pjson = require('../package.json');
 var fastCSV = require('fast-csv');
 var Web3 = require('web3');
 var web3 = new Web3();
-var config = require('../config.js');
-var eToken = web3.eth.contract(config.abi).at(config.address);
-web3.setProvider(new web3.providers.HttpProvider(config.gethNode));
+var configFile = require('../config.js');
+var eToken = web3.eth.contract(configFile.abi).at(configFile.address);
+web3.setProvider(new web3.providers.HttpProvider(configFile.gethNode));
 
 var eth = web3.eth;
 
@@ -20,6 +21,8 @@ let _csvData = [];
 let _csvAddresses = [];
 let _csvAmounts = [];
 let _csvIndex = 0;
+
+let nonce = 0;
 
 class TypeCommand {
     constructor() {}
@@ -34,65 +37,65 @@ class TypeCommand {
         //configuration
         parser.addArgument(
           ['--conf'], {
-            help: 'Specify configuration file (default: ../resources/config.conf)',
-            metavar: 'path',
-          }
+                help: 'Specify configuration file (default: ../resources/config.conf)',
+                metavar: 'path',
+            }
         );
 
         //wallet
         parser.addArgument(
           ['--wall'], {
-            help: 'Specify file with MyEtherWallet encrypted JSON container',
-            metavar: 'path',
-          }
+                help: 'Specify file with MyEtherWallet encrypted JSON container',
+                metavar: 'path',
+            }
         );
 
         //csv
         parser.addArgument(
           ['--csv'], {
-            help: 'Specify CSV file with Ethereum addresses and amounts. \nCSV must be formatted like so: "address,amount,address,amount" which each amount corresponding to the preceeding address.',
-            metavar: 'path',
-          }
+                help: 'Specify CSV file with Ethereum addresses and amounts. CSV must be formatted like so: "address,amount,address,amount" which each amount corresponding to the preceeding address.',
+                metavar: 'path',
+            }
         );
 
         //contract address
         parser.addArgument(
           ['--addr'], {
-            help: 'Specify ERC20 contract address',
-            metavar: 'address',
-          }
+                help: 'Specify ERC20 contract address',
+                metavar: 'address',
+            }
         );
 
         //token decimals
         parser.addArgument(
           ['--deci'], {
-            help: 'Specify ERC20 token decimals',
-            metavar: 'num',
-          }
+                help: 'Specify ERC20 token decimals',
+                metavar: 'num',
+            }
         );
 
         //offset
         parser.addArgument(
           ['--offs'], {
-            help: 'Specify offset in CSV file, to start sendings from (default: 0)',
-            metavar: 'num',
-          }
+                help: 'Specify offset in CSV file, to start sendings from (default: 0)',
+                metavar: 'num',
+            }
         );
 
         //batch size
         parser.addArgument(
           ['--batc'], {
-            help: 'Specify batch size (how many transactions to send, default: to the end of CSV file)',
-            metavar: 'num',
-          }
+                help: 'Specify batch size (how many transactions to send, default: to the end of CSV file)',
+                metavar: 'num',
+            }
         );
 
         //ready to run transaction?
         parser.addArgument(
           ['--tReady'], {
-            help: 'Set to true if ready to begin sending',
-            metavar: 'string',
-          }
+                help: 'Set to true if ready to begin sending',
+                metavar: 'string',
+            }
         );
 
         //TODO: add password argument
@@ -106,16 +109,27 @@ class TypeCommand {
             iniData = fs.readFileSync(configFile || '../resources/config.conf', 'utf-8');
         } catch (err) {
             //Only throw on failure to read if configuration file was expilicitly specified
-            if(configFile) {
-                throw new Error("couldn't read config file " + configFile);
+            if (configFile) {
+                throw new Error("Could not read config file " + configFile);
             }
         }
         return iniData ? ini.parse(iniData) : {};
     }
 
+    //Gets user wallet's address
+    getWalletAddr(pathName) {
+        let walletJSON;
+        try {
+            walletJSON = fs.readFileSync(pathName);
+        } catch (err) {
+            throw new Error('Could not read wallet file' + pathName);
+        }
+        return JSON.parse(walletJSON).address;
+    }
+
     beginTransaction() {
         //TODO: send tokens using Web 3 and use ranges
-        for(var i = 0; i < _csvAddresses.length; i++) {
+        for (var i = 0; i < _csvAddresses.length; i++) {
 
         }
     }
@@ -126,9 +140,9 @@ class TypeCommand {
         //defaults that get overriden by command line entries
 
         let conf = {
-            wall: '../resources/UTC--2017-06-08T23-08-53.501Z--fb9119d94ec08285ba7c06bcdb370b3f81bf82f9',
+            wall: '../resources/sampleWallet',
             csv: '../resources/default.csv',
-            addr: '0xfB9119D94eC08285bA7C06bCDb370B3f81bF82F9', // EXMPL',
+            addr: '', // EXMPL',
             deci: '',
             offs: '0',
             batc: '',
@@ -147,25 +161,27 @@ class TypeCommand {
         //Command line args override config file args - keys creates an array of the input
         _.keys(args).forEach(k => {
             //parseArgs sets missing values to null
-            if(args[k] !== null) {
-                config[k] = args[k];
+            if (args[k] !== null) {
+                conf[k] = args[k];
             }
         });
 
-        fs.writeFileSync('../resources/config.conf', ini.stringify(config, {}))
+        conf.addr = this.getWalletAddr(conf.wall.toString());
+
+        fs.writeFileSync('../resources/config.conf', ini.stringify(conf, {}))
 
         //TODO: read JSON container and login
         //ASSUMPTION: CSV file is formatted as such: address, tokens, address, tokens (no spaces)
         var csvTest = fs.createReadStream(conf.csv)
             .pipe(fastCSV())
-            .on('data', function(data) {
+            .on('data', function (data) {
                 //Comma delimiter separates values in CSV.  Values are stored in an array.
                 _csvData = data;
             })
-            .on('end', function(data) {
+            .on('end', function (data) {
                 //Values are separated into their according array.  Assuming the file is formatted as address,token,address,token
-                for(var i = 0; i < _csvData.length; i++) {
-                    if(i%2 === 0) {
+                for (var i = 0; i < _csvData.length; i++) {
+                    if (i % 2 === 0) {
                         _csvAddresses.push(_csvData[i]);
                     } else {
                         _csvAmounts.push(_csvData[i]);
@@ -173,11 +189,12 @@ class TypeCommand {
                 }
             });
 
+        nonce = _csvAddresses.length;
         //TODO: Check for no file error
 
         //if the user is ready, set a arg to true, then run transaction method
-        if(config.tReady.toLowerCase() === 'true') {
-            beginTransaction();
+        if (conf.tReady.toString().toLowerCase() === 'true') {
+            this.beginTransaction();
         }
     }
 }
