@@ -166,7 +166,7 @@ class TypeCommand {
 
             batchSize === '' ? batchSize = addresses.length : batchSize = batchSize;
 
-            for (var i = offset; i < address.length; i++) {
+            for (var i = offset; i < addresses.length; i++) {
                 if (transactionCount < batchSize) {
 
                     //nonce
@@ -281,7 +281,7 @@ class TypeCommand {
 
         //if the user is ready, set a arg to true, then run transaction method
         if (conf.tready.toString().toLowerCase() === 'true') {
-            this.enactTransaction();
+            this.enactTransaction(_csvAddresses, _csvAmounts);
             //get user password, sendTransaction(using gas prices, limit, nonce, addresses);
         }
     }
