@@ -30,6 +30,8 @@ let gasLimit;
 let nonce;
 let offset;
 let batchSize;
+let tokenDecimal;
+let tokenMultiplier;
 
 class TypeCommand {
     constructor() {}
@@ -101,7 +103,7 @@ class TypeCommand {
         //ready to run transaction?
         parser.addArgument(
           ['--tready'], {
-                help: 'Set to true if ready to begin sending',
+                help: 'Set to true if ready to begin sending: "--tready true"',
                 metavar: 'string',
             }
         );
@@ -172,8 +174,13 @@ class TypeCommand {
                     //nonce
                     nonce++;
                     var nonceHex = web3.toHex(nonce);
+
+                    //recipient address
                     var toAddressHex = web3.toHex(addresses[i]);
-                    var valueAmountHex = web3.toHex(amounts[i]);
+
+                    //amount to send
+                    var valueAmount = amounts[i] * tokenMultiplier;
+                    var valueAmountHex = web3.toHex(valueAmount);
 
                     //transaction object
                     var rawTx = {
@@ -206,7 +213,7 @@ class TypeCommand {
                     console.log('Transactions sent.');
                 }
             }
-            
+
             //delete private key
             privateKey = '';
 
@@ -215,17 +222,16 @@ class TypeCommand {
 
     run(argString) {
 
-        //TODO: Add defaults
         //defaults that get overriden by command line entries
-
         let conf = {
             wall: '../resources/sampleWallet',
             csv: '../resources/default.csv',
             addr: '',
-            deci: '',
+            deci: '0',
             offs: '0',
             batc: '',
             tready: 'false',
+            conf: '../resources/config.conf'
         };
 
         //Parse command line args
@@ -277,7 +283,10 @@ class TypeCommand {
         //sets the batch size
         batchSize = conf.batc;
 
-        //TODO: Check for no file error
+        //sets the token decimal & multiplier to send fractional amounts
+        tokenDecimal = conf.deci;
+        tokenMultiplier = Math.pow(10, tokenDecimal * (-1));
+        console.log(tokenMultiplier);
 
         //if the user is ready, set a arg to true, then run transaction method
         if (conf.tready.toString().toLowerCase() === 'true') {
