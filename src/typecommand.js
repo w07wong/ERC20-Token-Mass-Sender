@@ -104,8 +104,6 @@ class TypeCommand {
             }
         );
 
-        //TODO: add password argument
-
         return parser.parseArgs(args);
     }
 
@@ -138,7 +136,7 @@ class TypeCommand {
         return balance.toNumber();
     }
 
-    enactTransaction() {
+    enactTransaction(addresses, amounts) {
 
         prompt.start();
 
@@ -156,39 +154,39 @@ class TypeCommand {
             }
         }], function (err, result) {
             //save inputs
-            gasPrice = result.gas_price.toString();
-            gasLimit = result.gas_limit.toString();
+            gasPrice = web3.toHex(result.gas_price);
+            gasLimit = web3.toHex(result.gas_limit);
             privateKey = new Buffer(result.wallet_private_key.toString(), 'hex');
 
+            //nonce
+            nonce = web3.eth.getTransactionCount(web3.eth.defaultAccount);
+            var nonceHex = web3.toHex(nonce);
+
             var rawTx = {
-                nonce: '0x00',
+                nonce: nonceHex,
                 gasPrice: gasPrice,
                 gasLimit: gasLimit,
                 to: '0x059345dE4c56C80A5d90AD3B170627e2a7339173',
-                value: '0x0',
+                from: web3.eth.defaultAccount,
+                value: '0x00',
                 data: ''
             }
 
             var tx = new Tx(rawTx);
             tx.sign(privateKey);
             console.log('Your private key will be deleted once transaction finishes.')
-            
+
             var serializedTx = tx.serialize();
 
-            web3.eth.sendRawTransaction(serializedTx.toString('hex'), function (err, hash) {
-                if (!err)
-                    console.log(hash); 
+            web3.eth.sendRawTransaction(`0x${serializedTx.toString('hex')}`, function (err, hash) {
+                if (err)
+                    console.log(err);
                 else
-                    console.log('An error occured');
+                    console.log(hash);
             });
 
         });
-
-        //TODO: send tokens using Web 3 and use ranges
-        /*for (var i = 0; i < _csvAddresses.length; i++) {
-
-        }*/
-    }
+    };
 
     run(argString) {
 
@@ -226,7 +224,6 @@ class TypeCommand {
 
         fs.writeFileSync('../resources/config.conf', ini.stringify(conf, {}))
 
-        //TODO: read JSON container and login
         //ASSUMPTION: CSV file is formatted as such: address, tokens, address, tokens (no spaces)
         var csvTest = fs.createReadStream(conf.csv)
             .pipe(fastCSV())
@@ -248,14 +245,11 @@ class TypeCommand {
 
         //sets the default account (sender account)
         web3.eth.defaultAccount = `0x${conf.addr}`;
-        console.log(web3.eth.defaultAccount);
 
         //TODO: Check for no file error
 
         //if the user is ready, set a arg to true, then run transaction method
         if (conf.tready.toString().toLowerCase() === 'true') {
-            this.nonce = conf.batc;
-            console.log(this.nonce);
             this.enactTransaction();
             //get user password, sendTransaction(using gas prices, limit, nonce, addresses);
         }
