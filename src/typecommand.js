@@ -28,6 +28,8 @@ let privateKey;
 let gasPrice;
 let gasLimit;
 let nonce;
+let offset;
+let batchSize;
 
 class TypeCommand {
     constructor() {}
@@ -157,33 +159,56 @@ class TypeCommand {
             gasPrice = web3.toHex(result.gas_price);
             gasLimit = web3.toHex(result.gas_limit);
             privateKey = new Buffer(result.wallet_private_key.toString(), 'hex');
+            console.log('Your private key will be deleted once transaction finishes.');
 
-            //nonce
+            let transactionCount = 0;
             nonce = web3.eth.getTransactionCount(web3.eth.defaultAccount);
-            var nonceHex = web3.toHex(nonce);
 
-            var rawTx = {
-                nonce: nonceHex,
-                gasPrice: gasPrice,
-                gasLimit: gasLimit,
-                to: '0x059345dE4c56C80A5d90AD3B170627e2a7339173',
-                from: web3.eth.defaultAccount,
-                value: '0x00',
-                data: ''
+            batchSize === '' ? batchSize = addresses.length : batchSize = batchSize;
+
+            for (var i = offset; i < address.length; i++) {
+                if (transactionCount < batchSize) {
+
+                    //nonce
+                    nonce++;
+                    var nonceHex = web3.toHex(nonce);
+                    var toAddressHex = web3.toHex(addresses[i]);
+                    var valueAmountHex = web3.toHex(amounts[i]);
+
+                    //transaction object
+                    var rawTx = {
+                        nonce: nonceHex,
+                        gasPrice: gasPrice,
+                        gasLimit: gasLimit,
+                        to: toAddressHex,
+                        from: web3.eth.defaultAccount,
+                        value: valueAmountHex,
+                        data: ''
+                    }
+
+                    var tx = new Tx(rawTx);
+                    tx.sign(privateKey);
+
+                    var serializedTx = tx.serialize();
+
+                    //send
+                    web3.eth.sendRawTransaction(`0x${serializedTx.toString('hex')}`, function (err, hash) {
+                        if (err)
+                            console.log(err);
+                        else
+                            console.log(hash);
+                    });
+
+                    transactionCount++;
+
+                } else {
+                    i == addresses.length;
+                    console.log('Transactions sent.');
+                }
             }
-
-            var tx = new Tx(rawTx);
-            tx.sign(privateKey);
-            console.log('Your private key will be deleted once transaction finishes.')
-
-            var serializedTx = tx.serialize();
-
-            web3.eth.sendRawTransaction(`0x${serializedTx.toString('hex')}`, function (err, hash) {
-                if (err)
-                    console.log(err);
-                else
-                    console.log(hash);
-            });
+            
+            //delete private key
+            privateKey = '';
 
         });
     };
@@ -199,7 +224,7 @@ class TypeCommand {
             addr: '',
             deci: '',
             offs: '0',
-            batc: '10',
+            batc: '',
             tready: 'false',
         };
 
@@ -245,6 +270,12 @@ class TypeCommand {
 
         //sets the default account (sender account)
         web3.eth.defaultAccount = `0x${conf.addr}`;
+
+        //sets the offset
+        offset = conf.offs;
+
+        //sets the batch size
+        batchSize = conf.batc;
 
         //TODO: Check for no file error
 
