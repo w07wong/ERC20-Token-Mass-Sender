@@ -6,28 +6,34 @@ var _ = require('lodash');
 var pjson = require('../package.json');
 var fastCSV = require('fast-csv');
 var Web3 = require('web3');
-var web3 = new Web3();
 var configFile = require('../config.js');
+var Tx = require('ethereumjs-tx');
+var prompt = require('prompt');
+
+//web3 implementation
+var web3 = new Web3();
+var eth = web3.eth;
 var eToken = web3.eth.contract(configFile.abi).at(configFile.address);
 web3.setProvider(new web3.providers.HttpProvider(configFile.gethNode));
 
-var eth = web3.eth;
-
-//TODO: implment Web3
-
 const TEST_VERSION = pjson.version;
 
+//vars for csv
 let _csvData = [];
 let _csvAddresses = [];
 let _csvAmounts = [];
 let _csvIndex = 0;
 
-let nonce = 0;
+let privateKey;
+let gasPrice;
+let gasLimit;
+let nonce;
 
 class TypeCommand {
     constructor() {}
 
     getArgs(args) {
+
         let parser = new ArgumentParser({
             version: TEST_VERSION,
             addHelp: true,
@@ -92,7 +98,7 @@ class TypeCommand {
 
         //ready to run transaction?
         parser.addArgument(
-          ['--tReady'], {
+          ['--tready'], {
                 help: 'Set to true if ready to begin sending',
                 metavar: 'string',
             }
@@ -127,11 +133,61 @@ class TypeCommand {
         return JSON.parse(walletJSON).address;
     }
 
-    beginTransaction() {
-        //TODO: send tokens using Web 3 and use ranges
-        for (var i = 0; i < _csvAddresses.length; i++) {
+    getWalletBalance(wallAddr) {
+        var balance = web3.eth.getBalance(wallAddr);
+        return balance.toNumber();
+    }
 
-        }
+    enactTransaction() {
+
+        prompt.start();
+
+        prompt.get([{
+            name: 'gas_price',
+            required: true
+        }, {
+            name: 'gas_limit',
+            required: true
+        }, {
+            name: 'wallet_private_key',
+            hidden: true,
+            conform: function (value) {
+                return true;
+            }
+        }], function (err, result) {
+            //save inputs
+            gasPrice = result.gas_price.toString();
+            gasLimit = result.gas_limit.toString();
+            privateKey = new Buffer(result.wallet_private_key.toString(), 'hex');
+
+            var rawTx = {
+                nonce: '0x00',
+                gasPrice: gasPrice,
+                gasLimit: gasLimit,
+                to: '0x059345dE4c56C80A5d90AD3B170627e2a7339173',
+                value: '0x0',
+                data: ''
+            }
+
+            var tx = new Tx(rawTx);
+            tx.sign(privateKey);
+            console.log('Your private key will be deleted once transaction finishes.')
+            
+            var serializedTx = tx.serialize();
+
+            web3.eth.sendRawTransaction(serializedTx.toString('hex'), function (err, hash) {
+                if (!err)
+                    console.log(hash); 
+                else
+                    console.log('An error occured');
+            });
+
+        });
+
+        //TODO: send tokens using Web 3 and use ranges
+        /*for (var i = 0; i < _csvAddresses.length; i++) {
+
+        }*/
     }
 
     run(argString) {
@@ -142,11 +198,11 @@ class TypeCommand {
         let conf = {
             wall: '../resources/sampleWallet',
             csv: '../resources/default.csv',
-            addr: '', // EXMPL',
+            addr: '',
             deci: '',
             offs: '0',
-            batc: '',
-            tReady: 'false',
+            batc: '10',
+            tready: 'false',
         };
 
         //Parse command line args
@@ -183,18 +239,25 @@ class TypeCommand {
                 for (var i = 0; i < _csvData.length; i++) {
                     if (i % 2 === 0) {
                         _csvAddresses.push(_csvData[i]);
+                        //this.nonce = _csvAddresses.length;
                     } else {
                         _csvAmounts.push(_csvData[i]);
                     }
                 }
             });
 
-        nonce = _csvAddresses.length;
+        //sets the default account (sender account)
+        web3.eth.defaultAccount = `0x${conf.addr}`;
+        console.log(web3.eth.defaultAccount);
+
         //TODO: Check for no file error
 
         //if the user is ready, set a arg to true, then run transaction method
-        if (conf.tReady.toString().toLowerCase() === 'true') {
-            this.beginTransaction();
+        if (conf.tready.toString().toLowerCase() === 'true') {
+            this.nonce = conf.batc;
+            console.log(this.nonce);
+            this.enactTransaction();
+            //get user password, sendTransaction(using gas prices, limit, nonce, addresses);
         }
     }
 }
