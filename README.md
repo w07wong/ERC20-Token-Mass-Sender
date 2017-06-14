@@ -60,5 +60,5 @@ node index --tready true
 This begins the sending process.  You will be prompted for a gas price, gas limit and the private key to your ethereum wallet.  If all data is entered and correct, then tokens will be sent to the addresses specified in the CSV file.  Hashes of the completed transactions will be logged in the console.
 
 ## Note:
-This program writes data to the config.conf file, so running '--tready true' sets the tready value in the config file to true.  If you want to change arguments before you re-run the application, run '--tready false' (you can use any string besides false - as long as the string is not some form of "true").  If you do not, then the application will re-run the transactions when you enter new arguments.
+This program writes data to the config.conf file, so running '--tready true' sets the tready value in the config file to true.  If you want to change arguments before you re-run the application, run '--tready false' (you can use any string besides false - as long as the string is not a form of "true").  If you do not, then the application will re-run the transactions when you enter new arguments.
 
