@@ -1,4 +1,4 @@
-### erc20-mass-sender
+# erc20-mass-sender
 
 ## Summary
 erc20-mass-sender reads a CSV file and sends tokens from the user's wallets to the accounts specified in the file.
