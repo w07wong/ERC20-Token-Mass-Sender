@@ -44,7 +44,7 @@ class TypeCommand {
 
         //configuration
         parser.addArgument(
-          ['--conf'], {
+          ['--config'], {
                 help: 'Specify configuration file (default: ../resources/config.conf)',
                 metavar: 'path',
             }
@@ -52,7 +52,7 @@ class TypeCommand {
 
         //wallet
         parser.addArgument(
-          ['--wall'], {
+          ['--wallet'], {
                 help: 'Specify file with MyEtherWallet encrypted JSON container',
                 metavar: 'path',
             }
@@ -68,7 +68,7 @@ class TypeCommand {
 
         //contract address
         parser.addArgument(
-          ['--addr'], {
+          ['--address'], {
                 help: 'Specify ERC20 contract address',
                 metavar: 'address',
             }
@@ -76,7 +76,7 @@ class TypeCommand {
 
         //token decimals
         parser.addArgument(
-          ['--deci'], {
+          ['--decimal'], {
                 help: 'Specify ERC20 token decimals',
                 metavar: 'num',
             }
@@ -84,7 +84,7 @@ class TypeCommand {
 
         //offset
         parser.addArgument(
-          ['--offs'], {
+          ['--offsset'], {
                 help: 'Specify offset in CSV file, to start sendings from (default: 0)',
                 metavar: 'num',
             }
@@ -92,16 +92,32 @@ class TypeCommand {
 
         //batch size
         parser.addArgument(
-          ['--batc'], {
+          ['--batch'], {
                 help: 'Specify batch size (how many transactions to send, default: to the end of CSV file)',
+                metavar: 'num',
+            }
+        );
+
+        //gas price
+        parser.addArgument(
+          ['--gasPrice'], {
+                help: 'Specify gas price (wei)',
+                metavar: 'num',
+            }
+        );
+
+        //gas limit
+        parser.addArgument(
+          ['--gasLimit'], {
+                help: 'Specify gas limit (wei)',
                 metavar: 'num',
             }
         );
 
         //ready to run transaction?
         parser.addArgument(
-          ['--tready'], {
-                help: 'Set to true if ready to begin sending: "--tready true"',
+          ['--ready'], {
+                help: 'Set to true if ready to begin sending: "--ready true"',
                 metavar: 'string',
             }
         );
@@ -142,22 +158,14 @@ class TypeCommand {
 
         prompt.start();
 
-        prompt.get([{
-            name: 'gas_price',
-            required: true
-        }, {
-            name: 'gas_limit',
-            required: true
-        }, {
+        prompt.get({
             name: 'wallet_private_key',
             hidden: true,
             conform: function (value) {
                 return true;
             }
-        }], function (err, result) {
+        }, function (err, result) {
             //save inputs
-            gasPrice = web3.toHex(result.gas_price);
-            gasLimit = web3.toHex(result.gas_limit);
             privateKey = new Buffer(result.wallet_private_key.toString(), 'hex');
             console.log('Your private key will be deleted once transaction finishes.');
 
@@ -221,41 +229,43 @@ class TypeCommand {
     run(argString) {
 
         //defaults that get overriden by command line entries
-        let conf = {
-            wall: '../resources/sampleWallet',
+        let defaults = {
+            wallet: '../resources/sampleWallet',
             csv: '../resources/default.csv',
-            addr: '',
-            deci: '0',
-            offs: '0',
-            batc: '',
-            tready: 'false',
-            conf: '../resources/config.conf'
+            address: '',
+            decimal: '0',
+            offset: '0',
+            batch: '',
+            gasPrice: '',
+            gasLimit: '',
+            ready: 'false',
+            config: '../resources/config.conf'
         };
 
         //Parse command line args
         let args = this.getArgs(argString && argString.split(' '));
 
         //Get config file (depends on command line arg --conf)
-        let parsedConfig = this.getConfig(args.conf);
+        let parsedConfig = this.getConfig(args.config);
 
         //Config file overrides default options listed in this method
-        _.assign(conf, parsedConfig);
+        _.assign(defaults, parsedConfig);
 
         //Command line args override config file args - keys creates an array of the input
         _.keys(args).forEach(k => {
             //parseArgs sets missing values to null
             if (args[k] !== null) {
-                conf[k] = args[k];
+                defaults[k] = args[k];
             }
         });
 
-        conf.addr = this.getWalletAddr(conf.wall.toString());
+        defaults.address = this.getWalletAddr(defaults.wallet.toString());
 
-        fs.writeFileSync('../resources/config.conf', ini.stringify(conf, {}))
+        fs.writeFileSync('../resources/config.conf', ini.stringify(defaults, {}))
 
         //Reads CSV, stores variables
         fastCSV
-            .fromPath(conf.csv, {
+            .fromPath(defaults.csv, {
                 ignoreEmpty: true
             })
             .on('data', function (data) {
@@ -264,20 +274,26 @@ class TypeCommand {
             });
 
         //sets the default account (sender account)
-        web3.eth.defaultAccount = `0x${conf.addr}`;
+        web3.eth.defaultAccount = `0x${defaults.address}`;
 
         //sets the offset
-        offset = conf.offs;
+        offset = defaults.offset;
 
         //sets the batch size
-        batchSize = conf.batc;
+        batchSize = defaults.batch;
+
+        //sets the gas price
+        gasPrice = web3.toHex(defaults.gasPrice);
+
+        //sets the gas limit
+        gasLimit = web3.toHex(defaults.gasLimit);
 
         //sets the token decimal & multiplier to send fractional amounts
-        tokenDecimal = conf.deci;
+        tokenDecimal = defaults.decimal;
         tokenMultiplier = Math.pow(10, tokenDecimal * (-1));
 
         //if the user is ready, set a arg to true, then run transaction method
-        if (conf.tready.toString().toLowerCase() === 'true') {
+        if (defaults.ready.toString().toLowerCase() === 'true') {
             this.enactTransaction(_csvAddresses, _csvAmounts);
             //get user password, sendTransaction(using gas prices, limit, nonce, addresses);
         }
