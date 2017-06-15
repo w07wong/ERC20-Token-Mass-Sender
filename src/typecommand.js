@@ -19,10 +19,8 @@ web3.setProvider(new web3.providers.HttpProvider(configFile.gethNode));
 const TEST_VERSION = pjson.version;
 
 //vars for csv
-let _csvData = [];
 let _csvAddresses = [];
 let _csvAmounts = [];
-let _csvIndex = 0;
 
 let privateKey;
 let gasPrice;
@@ -255,23 +253,14 @@ class TypeCommand {
 
         fs.writeFileSync('../resources/config.conf', ini.stringify(conf, {}))
 
-        //ASSUMPTION: CSV file is formatted as such: address, tokens, address, tokens (no spaces)
-        var csvTest = fs.createReadStream(conf.csv)
-            .pipe(fastCSV())
-            .on('data', function (data) {
-                //Comma delimiter separates values in CSV.  Values are stored in an array.
-                _csvData = data;
+        //Reads CSV, stores variables
+        fastCSV
+            .fromPath(conf.csv, {
+                ignoreEmpty: true
             })
-            .on('end', function (data) {
-                //Values are separated into their according array.  Assuming the file is formatted as address,token,address,token
-                for (var i = 0; i < _csvData.length; i++) {
-                    if (i % 2 === 0) {
-                        _csvAddresses.push(_csvData[i]);
-                        //this.nonce = _csvAddresses.length;
-                    } else {
-                        _csvAmounts.push(_csvData[i]);
-                    }
-                }
+            .on('data', function (data) {
+                _csvAddresses.push(data[0]);
+                _csvAmounts.push(data[1]);
             });
 
         //sets the default account (sender account)
@@ -286,7 +275,6 @@ class TypeCommand {
         //sets the token decimal & multiplier to send fractional amounts
         tokenDecimal = conf.deci;
         tokenMultiplier = Math.pow(10, tokenDecimal * (-1));
-        console.log(tokenMultiplier);
 
         //if the user is ready, set a arg to true, then run transaction method
         if (conf.tready.toString().toLowerCase() === 'true') {
