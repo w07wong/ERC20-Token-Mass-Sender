@@ -45,7 +45,7 @@ class TypeCommand {
         //configuration
         parser.addArgument(
           ['--config'], {
-                help: 'Specify configuration file (default: ../resources/config.conf)',
+                help: 'Specify configuration file (default: ../config.js)',
                 metavar: 'path',
             }
         );
@@ -125,18 +125,18 @@ class TypeCommand {
         return parser.parseArgs(args);
     }
 
-    getConfig(configFile) {
+    /*getConfig(configFileParam) {
         let iniData;
         try {
-            iniData = fs.readFileSync(configFile || '../resources/config.conf', 'utf-8');
+            iniData = fs.readFileSync(configFileParam || '../config.js', 'utf-8');
         } catch (err) {
             //Only throw on failure to read if configuration file was expilicitly specified
-            if (configFile) {
-                throw new Error("Could not read config file " + configFile);
+            if (configFileParam) {
+                throw new Error("Could not read config file " + configFileParam);
             }
         }
         return iniData ? ini.parse(iniData) : {};
-    }
+    }*/
 
     //Gets user wallet's address
     getWalletAddr(pathName) {
@@ -230,26 +230,36 @@ class TypeCommand {
 
         //defaults that get overriden by command line entries
         let defaults = {
-            wallet: '../resources/sampleWallet',
-            csv: '../resources/default.csv',
+            wallet: 'asdf',
+            csv: '',
             address: '',
-            decimal: '0',
-            offset: '0',
+            decimal: '',
+            offset: '',
             batch: '',
             gasPrice: '',
             gasLimit: '',
-            ready: 'false',
-            config: '../resources/config.conf'
+            ready: '',
+            config: '../config.js'
         };
 
         //Parse command line args
         let args = this.getArgs(argString && argString.split(' '));
 
-        //Get config file (depends on command line arg --conf)
-        let parsedConfig = this.getConfig(args.config);
+        //Get config file (depends on command line arg --config)
+        //let parsedConfig = this.getConfig(args.config);
 
+        if(args.config != null) configFile = require(args.config);
         //Config file overrides default options listed in this method
-        _.assign(defaults, parsedConfig);
+        //_.assign(defaults, parsedConfig);
+
+
+
+        _.keys(defaults).forEach(k => {
+            defaults[k] = configFile[k];
+                    console.log(configFile[k]);
+
+        });
+
 
         //Command line args override config file args - keys creates an array of the input
         _.keys(args).forEach(k => {
@@ -260,8 +270,9 @@ class TypeCommand {
         });
 
         defaults.address = this.getWalletAddr(defaults.wallet.toString());
+        //fs.writeFileSync('../resources/config.conf', ini.stringify(defaults, {}))
+                console.log(defaults.gasLimit);
 
-        fs.writeFileSync('../resources/config.conf', ini.stringify(defaults, {}))
 
         //Reads CSV, stores variables
         fastCSV
