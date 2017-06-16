@@ -19,7 +19,7 @@ var eth = web3.eth;
 var eToken = web3.eth.contract(configFile.abi).at(configFile.address);
 web3.setProvider(new web3.providers.HttpProvider(configFile.gethNode));
 
-const TEST_VERSION = pjson.version;
+const ERC20_MASS_SENDER = pjson.version;
 
 //vars for csv
 let _csvAddresses = [];
@@ -40,7 +40,7 @@ class TypeCommand {
     getArgs(args) {
 
         let parser = new ArgumentParser({
-            version: TEST_VERSION,
+            version: ERC20_MASS_SENDER,
             addHelp: true,
             description: 'ERC20 Mass Sender'
         });
@@ -56,7 +56,7 @@ class TypeCommand {
         //wallet
         parser.addArgument(
           ['--wallet'], {
-                help: 'Specify file with MyEtherWallet encrypted JSON container',
+                help: 'Specify a ethereum wallet file.',
                 metavar: 'path',
             }
         );
@@ -64,7 +64,7 @@ class TypeCommand {
         //csv
         parser.addArgument(
           ['--csv'], {
-                help: 'Specify CSV file with Ethereum addresses and amounts. CSV must be formatted like so: "address,amount,address,amount" which each amount corresponding to the preceeding address.',
+                help: 'Specify a CSV file with Ethereum addresses and amounts.',
                 metavar: 'path',
             }
         );
@@ -72,7 +72,7 @@ class TypeCommand {
         //contract address
         parser.addArgument(
           ['--address'], {
-                help: 'Specify ERC20 contract address',
+                help: 'Specify a sending ERC20 contract address',
                 metavar: 'address',
             }
         );
@@ -80,7 +80,7 @@ class TypeCommand {
         //token decimals
         parser.addArgument(
           ['--decimal'], {
-                help: 'Specify ERC20 token decimals',
+                help: 'Specify the amount of ERC20 token decimals',
                 metavar: 'num',
             }
         );
@@ -88,7 +88,7 @@ class TypeCommand {
         //offset
         parser.addArgument(
           ['--offset'], {
-                help: 'Specify offset in CSV file, to start sendings from (default: 0)',
+                help: 'Specify a sending offset for the CSV file (default: 0)',
                 metavar: 'num',
             }
         );
@@ -96,7 +96,7 @@ class TypeCommand {
         //batch size
         parser.addArgument(
           ['--batch'], {
-                help: 'Specify batch size (how many transactions to send, default: to the end of CSV file)',
+                help: 'Specify a batch size or how many transactions to send (default: to the end of CSV file)',
                 metavar: 'num',
             }
         );
@@ -324,4 +324,4 @@ class TypeCommand {
     }
 }
 
-module.exports = TypeCommand;
+module.exports = Mass-Sender;

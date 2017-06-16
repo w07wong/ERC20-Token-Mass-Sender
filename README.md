@@ -7,15 +7,15 @@ erc20-mass-sender reads a CSV file and sends tokens from the user's wallets to t
 ### In terminal:
 **NodeJS must be installed**
 ```
-npm install
+$ npm install
 ```
-### In the config.js file:
-Specify your node url under:
-```
-'gethNode': ''
-```
+### Modify the config.js file:
 **OR**
 Modify your own config.js file.
+
+### Config File
+
+erc20-mass-sender can be configured using command line arguments, or it can read a config file.  The config file is specified using the --config command.  By default ./config.js is read, but you can create your own configuration file following the ./config.js template.  If an option is set in the config file, as well as directly on the command line, the command line argument takes precedence.
 
 ## Running
 Running **node index -h** in the src folder will produce usage information
