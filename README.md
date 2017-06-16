@@ -14,51 +14,56 @@ Specify your node url under:
 ```
 'gethNode': ''
 ```
+**OR**
+Modify your own config.js file.
 
 ## Running
 Running **node index -h** in the src folder will produce usage information
 ```
 $ node index -h
-usage: index [-h] [-v] [--conf path] [--wall path] [--csv path]
-             [--addr address] [--deci num] [--offs num] [--batc num]
-             [--tready string]
+usage: index [-h] [-v] [--config path] [--wallet path] [--csv path]
+             [--address address] [--decimal num] [--offset num] [--batch num]
+             [--gasPrice num] [--gasLimit num] [--ready string]
              
 
-Test
+ERC20 Mass Sender
 
 Optional arguments:
-  -h, --help       Show this help message and exit.
-  -v, --version    Show program's version number and exit.
-  --conf path      Specify configuration file (default: ../resources/config.
-                   conf)
-  --wall path      Specify file with MyEtherWallet encrypted JSON container
-  --csv path       Specify CSV file with Ethereum addresses and amounts. CSV 
-                   must be formatted like so: "address,amount,address,amount" 
-                   which each amount corresponding to the preceeding address.
-  --addr address   Specify ERC20 contract address
-  --deci num       Specify ERC20 token decimals
-  --offs num       Specify offset in CSV file, to start sendings from 
-                   (default: 0)
-  --batc num       Specify batch size (how many transactions to send, 
-                   default: to the end of CSV file)
-  --tready string  Set to true if ready to begin sending: "--tready true"
+  -h, --help         Show this help message and exit.
+  -v, --version      Show program's version number and exit.
+  --config path      Specify configuration file (default: ../config.js)
+  --wallet path      Specify file with MyEtherWallet encrypted JSON container
+  --csv path         Specify CSV file with Ethereum addresses and amounts. 
+                     CSV must be formatted like so: "address,amount,address,
+                     amount" which each amount corresponding to the 
+                     preceeding address.
+  --address address  Specify ERC20 contract address
+  --decimal num      Specify ERC20 token decimals
+  --offsset num      Specify offset in CSV file, to start sendings from 
+                     (default: 0)
+  --batch num        Specify batch size (how many transactions to send, 
+                     default: to the end of CSV file)
+  --gasPrice num     Specify gas price (wei)
+  --gasLimit num     Specify gas limit (wei)
+  --ready string     Set to true if ready to begin sending: "--ready true"
 ```
-First, specify your configuration file or enter details manaually.  You will need to enter in the path to your ethereum wallet file, the path to your CSV file which contains sending information and your wallet address to successfully run the program.  You may also specify a token decimal, an offset start position and batch size.
+First, specify your configuration file or enter details manaually.  **You can enter in multiple arguments at once.**  You will need to enter in the path to your ethereum wallet file, the path to your CSV file which contains sending information and your wallet address to successfully run the program.  You may also specify a token decimal, an offset start position and batch size.
 
 Your CSV file will contain addresses and the amounts you want to send.  It must be structured as shown:
 ```
-address,amount,address,amount
+address,amount
+address,amount
+...
+address,amount
 ```
 For example, the following lists two addresses and the corresponding amount of ether to send to each address.  In this case, 0 ether will be sent to both addresses.
 ```
-0x059345dE4c56C80A5d90AD3B170627e2a7339173,0,0x3e390fD69D0D306D5fdd1dF6F266B8e742460cdb,0
+0x059345dE4c56C80A5d90AD3B170627e2a7339173,0
+0x3e390fD69D0D306D5fdd1dF6F266B8e742460cdb,0
 ```
 When you have all the data inputed, or at least the necessary requriements, run
 ```
 node index --tready true
 ```
 This begins the sending process.  You will be prompted for a gas price, gas limit and the private key to your ethereum wallet.  If all data is entered and correct, then tokens will be sent to the addresses specified in the CSV file.  Hashes of the completed transactions will be logged in the console.
-
-## Note:
-This program writes data to the config.conf file, so running '--tready true' sets the tready value in the config file to true.  If you want to change arguments before you re-run the application, run '--tready false' (you can use any string besides false - as long as the string is not a form of "true").  If you do not, then the application will re-run the transactions when you enter new arguments.
 

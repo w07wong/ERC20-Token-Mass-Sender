@@ -1,4 +1,7 @@
+#!/usr/bin/env node
+
 'use strict';
+
 var ArgumentParser = require('argparse').ArgumentParser;
 var fs = require('fs');
 var ini = require('ini');
@@ -39,7 +42,7 @@ class TypeCommand {
         let parser = new ArgumentParser({
             version: TEST_VERSION,
             addHelp: true,
-            description: 'Test'
+            description: 'ERC20 Mass Sender'
         });
 
         //configuration
@@ -84,7 +87,7 @@ class TypeCommand {
 
         //offset
         parser.addArgument(
-          ['--offsset'], {
+          ['--offset'], {
                 help: 'Specify offset in CSV file, to start sendings from (default: 0)',
                 metavar: 'num',
             }
@@ -111,14 +114,6 @@ class TypeCommand {
           ['--gasLimit'], {
                 help: 'Specify gas limit (wei)',
                 metavar: 'num',
-            }
-        );
-
-        //ready to run transaction?
-        parser.addArgument(
-          ['--ready'], {
-                help: 'Set to true if ready to begin sending: "--ready true"',
-                metavar: 'string',
             }
         );
 
@@ -154,19 +149,32 @@ class TypeCommand {
         return balance.toNumber();
     }
 
+    checkRequiredParams(walletVar, cavVar, addressVar, gasPriceVar, gasLimitVar) {
+        let paramArr = [walletVar, cavVar, addressVar, gasPriceVar, gasLimitVar];
+        for (var p in paramArr) {
+            if (paramArr[p] == null || paramArr[p] === '' || paramArr[p] == undefined)
+                console.log('Missing a ' + paramArr[p]);
+        }
+    }
+
     enactTransaction(addresses, amounts) {
 
-        prompt.start();
+        console.log('Running transaction...');
 
+        prompt.start();
         prompt.get({
-            name: 'wallet_private_key',
-            hidden: true,
-            conform: function (value) {
-                return true;
+            properties: {
+                privateKey: {
+                    description: "Enter your wallet's private key:",
+                    hidden: true,
+                    conform: function (value) {
+                        return true;
+                    }
+                }
             }
         }, function (err, result) {
             //save inputs
-            privateKey = new Buffer(result.wallet_private_key.toString(), 'hex');
+            privateKey = new Buffer(result.privateKey.toString(), 'hex');
             console.log('Your private key will be deleted once transaction finishes.');
 
             let transactionCount = 0;
@@ -223,6 +231,9 @@ class TypeCommand {
             //delete private key
             privateKey = '';
 
+            //uncheck ready in config
+            configFile.ready = false;
+
         });
     };
 
@@ -230,7 +241,7 @@ class TypeCommand {
 
         //defaults that get overriden by command line entries
         let defaults = {
-            wallet: 'asdf',
+            wallet: '',
             csv: '',
             address: '',
             decimal: '',
@@ -238,7 +249,6 @@ class TypeCommand {
             batch: '',
             gasPrice: '',
             gasLimit: '',
-            ready: '',
             config: '../config.js'
         };
 
@@ -248,18 +258,13 @@ class TypeCommand {
         //Get config file (depends on command line arg --config)
         //let parsedConfig = this.getConfig(args.config);
 
-        if(args.config != null) configFile = require(args.config);
+        if (args.config != null) configFile = require(args.config);
         //Config file overrides default options listed in this method
         //_.assign(defaults, parsedConfig);
 
-
-
         _.keys(defaults).forEach(k => {
             defaults[k] = configFile[k];
-                    console.log(configFile[k]);
-
         });
-
 
         //Command line args override config file args - keys creates an array of the input
         _.keys(args).forEach(k => {
@@ -271,8 +276,6 @@ class TypeCommand {
 
         defaults.address = this.getWalletAddr(defaults.wallet.toString());
         //fs.writeFileSync('../resources/config.conf', ini.stringify(defaults, {}))
-                console.log(defaults.gasLimit);
-
 
         //Reads CSV, stores variables
         fastCSV
@@ -304,9 +307,19 @@ class TypeCommand {
         tokenMultiplier = Math.pow(10, tokenDecimal * (-1));
 
         //if the user is ready, set a arg to true, then run transaction method
-        if (defaults.ready.toString().toLowerCase() === 'true') {
-            this.enactTransaction(_csvAddresses, _csvAmounts);
-            //get user password, sendTransaction(using gas prices, limit, nonce, addresses);
+        if (this.checkRequiredParams(defaults.wallet, defaults.csv, defaults.address, defaults.gasLimit, defaults.gasPrice)) {
+
+            prompt.start();
+            prompt.get({
+                properties: {
+                    proceed: {
+                        description: "Would you like to proceed with the transaction? (y/n)"
+                    }
+                }
+            }, function (err, result) {
+                if (result.proceed.toLowerCase() === 'y')
+                    enactTransaction(_csvAddresses, _csvAmounts);
+            });
         }
     }
 }

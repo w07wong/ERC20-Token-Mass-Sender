@@ -1,10 +1,10 @@
 {
-  "name": "cltest",
-  "version": "1.0.0",
+  "name": "ERC20-Mass-Sender",
+  "version": "1.0.1",
   "description": "",
   "main": "typecommand.js",
   "scripts": {
-    "build": "babel src -d lib"
+    "build": "node ./src/index.js"
   },
   "author": "",
   "license": "ISC",

@@ -4,10 +4,9 @@ module.exports = {
     'wallet': '../resources/sampleWallet',
     'csv': '../resources/default.csv',
     'address': '',
-    'decimal': 0,
+    'decimal': '',
     'offset': 0,
     'batch': '',
     'gasPrice': '4000000000',
-    'gasLimit': 21000,
-    'ready':'false'
+    'gasLimit': 21000
 };
