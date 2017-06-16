@@ -23,7 +23,7 @@ Running **node index -h** in the src folder will produce usage information
 $ node index -h
 usage: index [-h] [-v] [--config path] [--wallet path] [--csv path]
              [--address address] [--decimal num] [--offset num] [--batch num]
-             [--gasPrice num] [--gasLimit num] [--ready string]
+             [--gasPrice num] [--gasLimit num]
              
 
 ERC20 Mass Sender
@@ -45,7 +45,6 @@ Optional arguments:
                      default: to the end of CSV file)
   --gasPrice num     Specify gas price (wei)
   --gasLimit num     Specify gas limit (wei)
-  --ready string     Set to true if ready to begin sending: "--ready true"
 ```
 First, specify your configuration file or enter details manaually.  **You can enter in multiple arguments at once.**  You will need to enter in the path to your ethereum wallet file, the path to your CSV file which contains sending information and your wallet address to successfully run the program.  You may also specify a token decimal, an offset start position and batch size.
 
