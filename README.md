@@ -61,9 +61,5 @@ For example, the following lists two addresses and the corresponding amount of e
 0x059345dE4c56C80A5d90AD3B170627e2a7339173,0
 0x3e390fD69D0D306D5fdd1dF6F266B8e742460cdb,0
 ```
-When you have all the data inputed, or at least the necessary requriements, run
-```
-node index --tready true
-```
-This begins the sending process.  You will be prompted for a gas price, gas limit and the private key to your ethereum wallet.  If all data is entered and correct, then tokens will be sent to the addresses specified in the CSV file.  Hashes of the completed transactions will be logged in the console.
+When you have all the data inputed, or at least the necessary requriements, you will be prompted to run the transaction.  Type y or n to proceed with the transaction.
 
