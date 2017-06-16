@@ -34,7 +34,7 @@ let batchSize;
 let tokenDecimal;
 let tokenMultiplier;
 
-class TypeCommand {
+class MassSender {
     constructor() {}
 
     getArgs(args) {
@@ -324,4 +324,4 @@ class TypeCommand {
     }
 }
 
-module.exports = Mass-Sender;
+module.exports = MassSender;

@@ -2,7 +2,7 @@
   "name": "ERC20-Mass-Sender",
   "version": "1.0.1",
   "description": "",
-  "main": "typecommand.js",
+  "main": "mass-sender.js",
   "scripts": {
     "build": "node ./src/index.js"
   },

@@ -1,6 +1,6 @@
-var TypeCommand = require('./mass-sender.js');
+var MassSender = require('./mass-sender.js');
 
-var tc = new Mass-Sender();
+var tc = new MassSender();
 
 try {
     tc.run();
