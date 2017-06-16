@@ -1,9 +1,9 @@
 var MassSender = require('./mass-sender.js');
 
-var tc = new MassSender();
+var ms = new MassSender();
 
 try {
-    tc.run();
+    ms.run();
 } catch(err) {
     console.error(err);
 }
