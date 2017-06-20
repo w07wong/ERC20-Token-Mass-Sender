@@ -260,6 +260,7 @@ class MassSender {
 
                     //data
                     data = contract.transfer.getData(addresses[i], amounts[i]);
+                    console.log('value:' + valueAmountHex);
 
                     //transaction object
                     var rawTx = {
@@ -349,7 +350,7 @@ class MassSender {
 
         //sets the token decimal & multiplier to send fractional amounts
         tokenDecimal = defaults.tokenDecimal;
-        tokenMultiplier = Math.pow(10, tokenDecimal * (-1));
+        tokenMultiplier = Math.pow(10, tokenDecimal);
 
         //if the user is ready, run transaction method
         if (this.checkRequiredParams(defaults.wallet, defaults.csv, defaults.contractAddress, defaults.gasLimit, defaults.gasPrice)) {
