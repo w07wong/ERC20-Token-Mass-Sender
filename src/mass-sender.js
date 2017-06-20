@@ -168,6 +168,7 @@ class MassSender {
         return true;
     }
 
+    //Scrypt Password Based Key Derivation Function
     decryptPrivateKeyFromWalletFile(input, password, nonStrict) {
         let walletFileText = fs.readFileSync(input, 'utf-8');
 
@@ -316,12 +317,8 @@ class MassSender {
         //Parse command line args
         let args = this.getArgs(argString && argString.split(' '));
 
-        //Get config file (depends on command line arg --config)
-        //let parsedConfig = this.getConfig(args.config);
-
+        //Sets config file
         if (args.config != null) configFile = require(args.config);
-        //Config file overrides default options listed in this method
-        //_.assign(defaults, parsedConfig);
 
         _.keys(defaults).forEach(k => {
             defaults[k] = configFile[k];
