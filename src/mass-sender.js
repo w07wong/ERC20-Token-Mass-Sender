@@ -4,7 +4,6 @@
 
 var ArgumentParser = require('argparse').ArgumentParser;
 var fs = require('fs');
-var ini = require('ini');
 var _ = require('lodash');
 var pjson = require('../package.json');
 var fastCSV = require('fast-csv');
@@ -134,19 +133,6 @@ class MassSender {
 
         return parser.parseArgs(args);
     }
-
-    /*getConfig(configFileParam) {
-        let iniData;
-        try {
-            iniData = fs.readFileSync(configFileParam || '../config.js', 'utf-8');
-        } catch (err) {
-            //Only throw on failure to read if configuration file was expilicitly specified
-            if (configFileParam) {
-                throw new Error("Could not read config file " + configFileParam);
-            }
-        }
-        return iniData ? ini.parse(iniData) : {};
-    }*/
 
     //Gets user wallet's address
     getWalletAddr(pathName) {
