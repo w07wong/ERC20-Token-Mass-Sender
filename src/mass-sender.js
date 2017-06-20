@@ -12,6 +12,9 @@ var Web3 = require('web3');
 var configFile = require('../config.js');
 var Tx = require('ethereumjs-tx');
 var prompt = require('prompt');
+var ethUtil = require('ethereumjs-util');
+ethUtil.scrypt = require('scryptsy');
+ethUtil.crypto = require('crypto');
 
 //web3 implementation
 var web3 = new Web3();
@@ -19,8 +22,15 @@ var eth = web3.eth;
 web3.setProvider(new web3.providers.HttpProvider(configFile.gethNode));
 
 //contract setup
-let contract = web3.eth.contract(configFile.abi).at(configFile.address);
+let contract = web3.eth.contract(configFile.abi).at(configFile.contractAddress);
 let data;
+
+//decryption setup
+let Wallet = function (priv) {
+    if (typeof priv != "undefined") {
+        this.privKey = priv.length == 32 ? priv : Buffer(priv, 'hex')
+    }
+}
 
 //version
 const ERC20_MASS_SENDER = pjson.version;
@@ -30,7 +40,7 @@ let _csvAddresses = [];
 let _csvAmounts = [];
 
 //vars for transaction
-let privateKey;
+let password;
 let gasPrice;
 let gasLimit;
 let nonce;
@@ -146,7 +156,14 @@ class MassSender {
         } catch (err) {
             throw new Error('Could not read wallet file' + pathName);
         }
-        return JSON.parse(walletJSON).address;
+
+        let address = JSON.parse(walletJSON).address;
+
+        if(address.substr(0,2) === '0x') {
+            return address.substr(2);
+        } else {
+            return address;
+        }
     }
 
     getWalletBalance(wallAddr) {
@@ -165,15 +182,62 @@ class MassSender {
         return true;
     }
 
+    decryptPrivateKeyFromWalletFile(input, password, nonStrict) {
+        let walletFileText = fs.readFileSync(input, 'utf-8');
+
+        var json = (typeof walletFileText === 'object') ? walletFileText : JSON.parse(nonStrict ? walletFileText.toLowerCase() : walletFileText);
+        if (json.version !== 3) {
+            throw new Error('Not a V3 wallet')
+        }
+        var derivedKey;
+        var kdfParams;
+
+        if (json.crypto.kdf === 'scrypt') {
+            kdfParams = json.crypto.kdfparams
+            derivedKey = ethUtil.scrypt(new Buffer(password), new Buffer(kdfParams.salt, 'hex'), kdfParams.n, kdfParams.r, kdfParams.p, kdfParams.dklen);
+        } else if (json.crypto.kdf == 'pbkdf2') {
+            kdfparams = json.crypto.kdfparams
+            if (kdfparams.prf !== 'hmac-sha256') {
+                throw new Error('Unsupported parameters to PBKDF2.');
+            }
+            derivedKey = ethUtil.crypto.pbkdf2Sync(new Buffer(password), new Buffer(kdfparams.salt, 'hex'), kdfparams.c, kdfparams.dklen, 'sha256');
+        } else {
+            throw new Error('Unsupported key derivation scheme.');
+        }
+
+        var cipherText = new Buffer(json.crypto.ciphertext, 'hex');
+        var mac = ethUtil.sha3(Buffer.concat([derivedKey.slice(16, 32), cipherText]));
+
+        if (mac.toString('hex') != json.crypto.mac) {
+            throw new Error('Key derivation failed.  Possibly incorrect password.');
+        }
+
+        var decipher = ethUtil.crypto.createDecipheriv(json.crypto.cipher, derivedKey.slice(0, 16), new Buffer(json.crypto.cipherparams.iv, 'hex'));
+
+        var seed = this.decipherBuffer(decipher, cipherText, 'hex');
+
+        while (seed.length < 32) {
+            var nullBuff = new Buffer([0x00]);
+            seed = Buffer.concat([nullBuff, seed]);
+        }
+        return new Wallet(seed);
+    }
+
+    decipherBuffer(decipher, data) {
+        return Buffer.concat([decipher.update(data), decipher.final()]);
+    }
+
     enactTransaction(addresses, amounts) {
+
+        let that = this;
 
         console.log('Running transaction...');
 
         prompt.start();
         prompt.get({
             properties: {
-                privateKey: {
-                    description: "Enter your wallet's private key",
+                password: {
+                    description: "Enter your wallet's password",
                     hidden: true,
                     conform: function (value) {
                         return true;
@@ -182,9 +246,11 @@ class MassSender {
             }
         }, function (err, result) {
             //save inputs
-            console.log('result: ', result);
-            privateKey = new Buffer(result.privateKey.toString(), 'hex');
-            console.log('Your private key will be deleted once transaction finishes.');
+            password = result.password.toString();
+            console.log('Your password will be deleted once transaction finishes.');
+
+            //get private key
+            var privateKey = that.decryptPrivateKeyFromWalletFile(configFile.wallet, password, true).privKey;
 
             let transactionCount = 0;
             nonce = web3.eth.getTransactionCount(web3.eth.defaultAccount);
@@ -206,7 +272,7 @@ class MassSender {
                     var valueAmountHex = web3.toHex(valueAmount);
 
                     //data
-                    data = contract.transfer.getData(addresses[i]);
+                    data = contract.transfer.getData(addresses[i], configFile.contractAddress);
 
                     //transaction object
                     var rawTx = {
@@ -240,95 +306,11 @@ class MassSender {
                 }
             }
 
-            //delete private key
-            privateKey = '';
-
-            //falsify ready in config
-            configFile.ready = false;
+            //delete password
+            password = '';
 
         });
     }
-    
-    /*
-    //RETURN WALLET
-    
-    //STEP 1
-    
-		$scope.wallet = null;
-		$scope.addWalletStats = "";
-		try {
-			if ($scope.walletType == "pasteprivkey" && $scope.requirePPass) {
-				$scope.wallet = Wallet.fromMyEtherWalletKey($scope.manualprivkey, $scope.privPassword);
-				$scope.addAccount.password = $scope.privPassword;
-			} else if ($scope.walletType == "pasteprivkey" && !$scope.requirePPass) {
-				$scope.wallet = new Wallet($scope.manualprivkey);
-				$scope.addAccount.password = '';
-			} else if ($scope.walletType == "fileupload") {
-				$scope.wallet = Wallet.getWalletFromPrivKeyFile($scope.fileContent, $scope.filePassword);
-				$scope.addAccount.password = $scope.filePassword;
-			} else if ($scope.walletType == "pastemnemonic") {
-				$scope.mnemonicModel.open();
-				$scope.HDWallet.hdk = hd.HDKey.fromMasterSeed(hd.bip39.mnemonicToSeed($scope.manualmnemonic.trim()));
-				$scope.HDWallet.numWallets = 0;
-				$scope.setHDAddresses($scope.HDWallet.numWallets, $scope.HDWallet.walletsPerDialog);
-			}
-		} catch (e) {
-			$scope.notifier.danger(globalFuncs.errorMsgs[6] + e);
-		}
-		if ($scope.wallet != null) {
-			$scope.addAccount.address = $scope.wallet.getAddressString();
-			$scope.notifier.info(globalFuncs.successMsgs[1]);
-			$scope.showAddWallet = true;
-			$scope.showPassTxt = $scope.addAccount.password == '';
-			$scope.setBalance();
-		}
-	};
-
-    //STEP 2
-    Wallet.getWalletFromPrivKeyFile = function(strjson, password) {
-    var jsonArr = JSON.parse(strjson);
-    if (jsonArr.encseed != null) return Wallet.fromEthSale(strjson, password);
-    else if (jsonArr.Crypto != null || jsonArr.crypto != null) return Wallet.fromV3(strjson, password, true);
-    else if (jsonArr.hash != null) return Wallet.fromMyEtherWallet(strjson, password);
-    else if (jsonArr.publisher == "MyEtherWallet") return Wallet.fromMyEtherWalletV2(strjson);
-    else
-        throw globalFuncs.errorMsgs[2];
-    };
-
-    //STEP 3
-    Wallet.fromV3 = function(input, password, nonStrict) {
-    var json = (typeof input === 'object') ? input : JSON.parse(nonStrict ? input.toLowerCase() : input)
-    if (json.version !== 3) {
-        throw new Error('Not a V3 wallet')
-    }
-    var derivedKey
-    var kdfparams
-    if (json.crypto.kdf === 'scrypt') {
-        kdfparams = json.crypto.kdfparams
-        derivedKey = ethUtil.scrypt(new Buffer(password), new Buffer(kdfparams.salt, 'hex'), kdfparams.n, kdfparams.r, kdfparams.p, kdfparams.dklen)
-    } else if (json.crypto.kdf === 'pbkdf2') {
-        kdfparams = json.crypto.kdfparams
-        if (kdfparams.prf !== 'hmac-sha256') {
-            throw new Error('Unsupported parameters to PBKDF2')
-        }
-        derivedKey = ethUtil.crypto.pbkdf2Sync(new Buffer(password), new Buffer(kdfparams.salt, 'hex'), kdfparams.c, kdfparams.dklen, 'sha256')
-    } else {
-        throw new Error('Unsupported key derivation scheme')
-    }
-    var ciphertext = new Buffer(json.crypto.ciphertext, 'hex')
-    var mac = ethUtil.sha3(Buffer.concat([derivedKey.slice(16, 32), ciphertext]))
-    if (mac.toString('hex') !== json.crypto.mac) {
-        throw new Error('Key derivation failed - possibly wrong passphrase')
-    }
-    var decipher = ethUtil.crypto.createDecipheriv(json.crypto.cipher, derivedKey.slice(0, 16), new Buffer(json.crypto.cipherparams.iv, 'hex'))
-    var seed = Wallet.decipherBuffer(decipher, ciphertext, 'hex')
-    while (seed.length < 32) {
-        var nullBuff = new Buffer([0x00]);
-        seed = Buffer.concat([nullBuff, seed]);
-    }
-    return new Wallet(seed)
-}
-*/
 
     run(argString) {
 
