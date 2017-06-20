@@ -16,15 +16,20 @@ var prompt = require('prompt');
 //web3 implementation
 var web3 = new Web3();
 var eth = web3.eth;
-var eToken = web3.eth.contract(configFile.abi).at(configFile.address);
 web3.setProvider(new web3.providers.HttpProvider(configFile.gethNode));
 
+//contract setup
+let contract = web3.eth.contract(configFile.abi).at(configFile.address);
+let data;
+
+//version
 const ERC20_MASS_SENDER = pjson.version;
 
 //vars for csv
 let _csvAddresses = [];
 let _csvAmounts = [];
 
+//vars for transaction
 let privateKey;
 let gasPrice;
 let gasLimit;
@@ -56,7 +61,7 @@ class MassSender {
         //wallet
         parser.addArgument(
           ['--wallet'], {
-                help: 'Specify a ethereum wallet file.',
+                help: 'Specify an Ethereum wallet file.',
                 metavar: 'path',
             }
         );
@@ -71,7 +76,7 @@ class MassSender {
 
         //contract address
         parser.addArgument(
-          ['--address'], {
+          ['--contractAddress'], {
                 help: 'Specify a sending ERC20 contract address',
                 metavar: 'address',
             }
@@ -79,7 +84,7 @@ class MassSender {
 
         //token decimals
         parser.addArgument(
-          ['--decimal'], {
+          ['--tokenDecimal'], {
                 help: 'Specify the amount of ERC20 token decimals',
                 metavar: 'num',
             }
@@ -104,7 +109,7 @@ class MassSender {
         //gas price
         parser.addArgument(
           ['--gasPrice'], {
-                help: 'Specify gas price (wei)',
+                help: 'Specify gas price (gwei)',
                 metavar: 'num',
             }
         );
@@ -112,7 +117,7 @@ class MassSender {
         //gas limit
         parser.addArgument(
           ['--gasLimit'], {
-                help: 'Specify gas limit (wei)',
+                help: 'Specify gas limit (gwei)',
                 metavar: 'num',
             }
         );
@@ -149,12 +154,15 @@ class MassSender {
         return balance.toNumber();
     }
 
-    checkRequiredParams(walletVar, cavVar, addressVar, gasPriceVar, gasLimitVar) {
-        let paramArr = [walletVar, cavVar, addressVar, gasPriceVar, gasLimitVar];
+    checkRequiredParams(walletVar, cavVar, contractAddressVar, gasPriceVar, gasLimitVar) {
+        let paramArr = [walletVar, cavVar, contractAddressVar, gasPriceVar, gasLimitVar];
         for (var p in paramArr) {
-            if (paramArr[p] == null || paramArr[p] === '' || paramArr[p] == undefined)
+            if (paramArr[p] == null || paramArr[p] === '' || paramArr[p] == undefined) {
                 console.log('Missing a ' + paramArr[p]);
+                return false;
+            }
         }
+        return true;
     }
 
     enactTransaction(addresses, amounts) {
@@ -165,7 +173,7 @@ class MassSender {
         prompt.get({
             properties: {
                 privateKey: {
-                    description: "Enter your wallet's private key:",
+                    description: "Enter your wallet's private key",
                     hidden: true,
                     conform: function (value) {
                         return true;
@@ -174,6 +182,7 @@ class MassSender {
             }
         }, function (err, result) {
             //save inputs
+            console.log('result: ', result);
             privateKey = new Buffer(result.privateKey.toString(), 'hex');
             console.log('Your private key will be deleted once transaction finishes.');
 
@@ -196,15 +205,18 @@ class MassSender {
                     var valueAmount = amounts[i] * tokenMultiplier;
                     var valueAmountHex = web3.toHex(valueAmount);
 
+                    //data
+                    data = contract.transfer.getData(addresses[i]);
+
                     //transaction object
                     var rawTx = {
                         nonce: nonceHex,
                         gasPrice: gasPrice,
                         gasLimit: gasLimit,
-                        to: toAddressHex,
+                        to: contract.address,
                         from: web3.eth.defaultAccount,
                         value: valueAmountHex,
-                        data: ''
+                        data: data
                     }
 
                     var tx = new Tx(rawTx);
@@ -223,19 +235,100 @@ class MassSender {
                     transactionCount++;
 
                 } else {
-                    i == addresses.length;
                     console.log('Transactions sent.');
+                    i == addresses.length;
                 }
             }
 
             //delete private key
             privateKey = '';
 
-            //uncheck ready in config
+            //falsify ready in config
             configFile.ready = false;
 
         });
+    }
+    
+    /*
+    //RETURN WALLET
+    
+    //STEP 1
+    
+		$scope.wallet = null;
+		$scope.addWalletStats = "";
+		try {
+			if ($scope.walletType == "pasteprivkey" && $scope.requirePPass) {
+				$scope.wallet = Wallet.fromMyEtherWalletKey($scope.manualprivkey, $scope.privPassword);
+				$scope.addAccount.password = $scope.privPassword;
+			} else if ($scope.walletType == "pasteprivkey" && !$scope.requirePPass) {
+				$scope.wallet = new Wallet($scope.manualprivkey);
+				$scope.addAccount.password = '';
+			} else if ($scope.walletType == "fileupload") {
+				$scope.wallet = Wallet.getWalletFromPrivKeyFile($scope.fileContent, $scope.filePassword);
+				$scope.addAccount.password = $scope.filePassword;
+			} else if ($scope.walletType == "pastemnemonic") {
+				$scope.mnemonicModel.open();
+				$scope.HDWallet.hdk = hd.HDKey.fromMasterSeed(hd.bip39.mnemonicToSeed($scope.manualmnemonic.trim()));
+				$scope.HDWallet.numWallets = 0;
+				$scope.setHDAddresses($scope.HDWallet.numWallets, $scope.HDWallet.walletsPerDialog);
+			}
+		} catch (e) {
+			$scope.notifier.danger(globalFuncs.errorMsgs[6] + e);
+		}
+		if ($scope.wallet != null) {
+			$scope.addAccount.address = $scope.wallet.getAddressString();
+			$scope.notifier.info(globalFuncs.successMsgs[1]);
+			$scope.showAddWallet = true;
+			$scope.showPassTxt = $scope.addAccount.password == '';
+			$scope.setBalance();
+		}
+	};
+
+    //STEP 2
+    Wallet.getWalletFromPrivKeyFile = function(strjson, password) {
+    var jsonArr = JSON.parse(strjson);
+    if (jsonArr.encseed != null) return Wallet.fromEthSale(strjson, password);
+    else if (jsonArr.Crypto != null || jsonArr.crypto != null) return Wallet.fromV3(strjson, password, true);
+    else if (jsonArr.hash != null) return Wallet.fromMyEtherWallet(strjson, password);
+    else if (jsonArr.publisher == "MyEtherWallet") return Wallet.fromMyEtherWalletV2(strjson);
+    else
+        throw globalFuncs.errorMsgs[2];
     };
+
+    //STEP 3
+    Wallet.fromV3 = function(input, password, nonStrict) {
+    var json = (typeof input === 'object') ? input : JSON.parse(nonStrict ? input.toLowerCase() : input)
+    if (json.version !== 3) {
+        throw new Error('Not a V3 wallet')
+    }
+    var derivedKey
+    var kdfparams
+    if (json.crypto.kdf === 'scrypt') {
+        kdfparams = json.crypto.kdfparams
+        derivedKey = ethUtil.scrypt(new Buffer(password), new Buffer(kdfparams.salt, 'hex'), kdfparams.n, kdfparams.r, kdfparams.p, kdfparams.dklen)
+    } else if (json.crypto.kdf === 'pbkdf2') {
+        kdfparams = json.crypto.kdfparams
+        if (kdfparams.prf !== 'hmac-sha256') {
+            throw new Error('Unsupported parameters to PBKDF2')
+        }
+        derivedKey = ethUtil.crypto.pbkdf2Sync(new Buffer(password), new Buffer(kdfparams.salt, 'hex'), kdfparams.c, kdfparams.dklen, 'sha256')
+    } else {
+        throw new Error('Unsupported key derivation scheme')
+    }
+    var ciphertext = new Buffer(json.crypto.ciphertext, 'hex')
+    var mac = ethUtil.sha3(Buffer.concat([derivedKey.slice(16, 32), ciphertext]))
+    if (mac.toString('hex') !== json.crypto.mac) {
+        throw new Error('Key derivation failed - possibly wrong passphrase')
+    }
+    var decipher = ethUtil.crypto.createDecipheriv(json.crypto.cipher, derivedKey.slice(0, 16), new Buffer(json.crypto.cipherparams.iv, 'hex'))
+    var seed = Wallet.decipherBuffer(decipher, ciphertext, 'hex')
+    while (seed.length < 32) {
+        var nullBuff = new Buffer([0x00]);
+        seed = Buffer.concat([nullBuff, seed]);
+    }
+    return new Wallet(seed)
+}
+*/
 
     run(argString) {
 
@@ -243,8 +336,8 @@ class MassSender {
         let defaults = {
             wallet: '',
             csv: '',
-            address: '',
-            decimal: '',
+            contractAddress: '',
+            tokenDecimal: '',
             offset: '',
             batch: '',
             gasPrice: '',
@@ -274,21 +367,8 @@ class MassSender {
             }
         });
 
-        defaults.address = this.getWalletAddr(defaults.wallet.toString());
-        //fs.writeFileSync('../resources/config.conf', ini.stringify(defaults, {}))
-
-        //Reads CSV, stores variables
-        fastCSV
-            .fromPath(defaults.csv, {
-                ignoreEmpty: true
-            })
-            .on('data', function (data) {
-                _csvAddresses.push(data[0]);
-                _csvAmounts.push(data[1]);
-            });
-
         //sets the default account (sender account)
-        web3.eth.defaultAccount = `0x${defaults.address}`;
+        web3.eth.defaultAccount = `0x${this.getWalletAddr(defaults.wallet.toString())}`;
 
         //sets the offset
         offset = defaults.offset;
@@ -303,25 +383,41 @@ class MassSender {
         gasLimit = web3.toHex(defaults.gasLimit);
 
         //sets the token decimal & multiplier to send fractional amounts
-        tokenDecimal = defaults.decimal;
+        tokenDecimal = defaults.tokenDecimal;
         tokenMultiplier = Math.pow(10, tokenDecimal * (-1));
 
-        //if the user is ready, set a arg to true, then run transaction method
-        if (this.checkRequiredParams(defaults.wallet, defaults.csv, defaults.address, defaults.gasLimit, defaults.gasPrice)) {
+        //if the user is ready, run transaction method
+        if (this.checkRequiredParams(defaults.wallet, defaults.csv, defaults.contractAddress, defaults.gasLimit, defaults.gasPrice)) {
 
-            prompt.start();
-            prompt.get({
-                properties: {
-                    proceed: {
-                        description: "Would you like to proceed with the transaction? (y/n)"
-                    }
-                }
-            }, function (err, result) {
-                if (result.proceed.toLowerCase() === 'y')
-                    enactTransaction(_csvAddresses, _csvAmounts);
-            });
+            let that = this;
+
+            //Reads CSV, stores variables
+            fastCSV
+                .fromPath(defaults.csv, {
+                    ignoreEmpty: true
+                })
+                .on('data', function (data) {
+                    _csvAddresses.push(data[0]);
+                    _csvAmounts.push(data[1]);
+                })
+                .on('end', function (data) {
+                    prompt.start();
+                    prompt.get({
+                        properties: {
+                            proceed: {
+                                description: "Would you like to proceed with the transaction? (y/n)"
+                            }
+                        }
+                    }, function (err, result) {
+                        if (result.proceed.toLowerCase() === 'y')
+                            that.enactTransaction(_csvAddresses, _csvAmounts);
+                        else
+                            console.log('You have chosen to not proceed with the transaction.');
+                    });
+                });
         }
     }
 }
+
 
 module.exports = MassSender;
