@@ -259,7 +259,7 @@ class MassSender {
                     var valueAmountHex = web3.toHex(valueAmount);
 
                     //data
-                    data = contract.transfer.getData(addresses[i], configFile.contractAddress);
+                    data = contract.transfer.getData(addresses[i], amounts[i]);
 
                     //transaction object
                     var rawTx = {

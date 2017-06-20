@@ -3,8 +3,8 @@ module.exports = {
     'gethNode': 'https://9t1f4yor7v5t521m4ra9xh24ggd2q4-node.ambisafe.co/',/*Ethereum node url*/ // Supernode service can be ordered at https://www.ambisafe.co/services/
     'wallet': '../resources/sampleWallet',
     'csv': '../resources/default.csv',
-    'contractAddress': '0x03efee7c710ad3b2ca1301309ee0dbc134acbb26', //EXMPL
-    'tokenDecimal': 2,
+    'contractAddress': '0x6c2b5b84b349f96851abe44952934dd532c21c73', //EXMPL
+    'tokenDecimal': 4,
     'offset': 0,
     'batch': '',
     'gasPrice': 4000000000, // 4 Gwei
