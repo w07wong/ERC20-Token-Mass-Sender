@@ -240,7 +240,6 @@ class MassSender {
             var privateKey = that.decryptPrivateKeyFromWalletFile(configFile.wallet, password, true).privKey;
 
             let transactionCount = 0;
-            nonce = web3.eth.getTransactionCount(web3.eth.defaultAccount);
 
             batchSize === '' ? batchSize = addresses.length : batchSize = batchSize;
 
@@ -250,7 +249,7 @@ class MassSender {
                     //nonce
                     nonce++;
                     var nonceHex = web3.toHex(nonce);
-
+                    console.log(nonce);
                     //recipient address
                     var toAddressHex = web3.toHex(addresses[i]);
 
@@ -260,7 +259,6 @@ class MassSender {
 
                     //data
                     data = contract.transfer.getData(addresses[i], amounts[i]);
-                    console.log('value:' + valueAmountHex);
 
                     //transaction object
                     var rawTx = {
@@ -277,6 +275,7 @@ class MassSender {
                     tx.sign(privateKey);
 
                     var serializedTx = tx.serialize();
+                    console.log(`0x${serializedTx.toString('hex')}`);
 
                     //send
                     web3.eth.sendRawTransaction(`0x${serializedTx.toString('hex')}`, function (err, hash) {
@@ -354,6 +353,8 @@ class MassSender {
 
         //if the user is ready, run transaction method
         if (this.checkRequiredParams(defaults.wallet, defaults.csv, defaults.contractAddress, defaults.gasLimit, defaults.gasPrice)) {
+
+            nonce = web3.eth.getTransactionCount(web3.eth.defaultAccount, "pending");
 
             let that = this;
 
