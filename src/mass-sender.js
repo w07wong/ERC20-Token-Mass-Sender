@@ -21,7 +21,7 @@ var eth = web3.eth;
 web3.setProvider(new web3.providers.HttpProvider(configFile.gethNode));
 
 //contract setup
-let contract = web3.eth.contract(configFile.abi).at(configFile.contractAddress);
+let contract;
 let data;
 
 //decryption setup
@@ -40,6 +40,7 @@ let _csvAmounts = [];
 
 //vars for transaction
 let password;
+let contractAddress;
 let gasPrice;
 let gasLimit;
 let nonce;
@@ -134,6 +135,11 @@ class MassSender {
         return parser.parseArgs(args);
     }
 
+    //returns hexed address if not yet one
+    checkHex(address) {
+        return (address.substr(0, 2) === '0x') ? address : '0x' + address;
+    }
+
     //Gets user wallet's address
     getWalletAddr(pathName) {
         let walletJSON;
@@ -145,7 +151,7 @@ class MassSender {
 
         let address = JSON.parse(walletJSON).address;
 
-        if(address.substr(0,2) === '0x') {
+        if (address.substr(0, 2) === '0x') {
             return address.substr(2);
         } else {
             return address;
@@ -234,7 +240,7 @@ class MassSender {
         }, function (err, result) {
             //save inputs
             password = result.password.toString();
-            console.log('Your password will be deleted once transaction finishes.');
+            console.log('Your password will be deleted once transaction completes.');
 
             //get private key
             var privateKey = that.decryptPrivateKeyFromWalletFile(configFile.wallet, password, true).privKey;
@@ -249,16 +255,22 @@ class MassSender {
                     //nonce
                     nonce++;
                     var nonceHex = web3.toHex(nonce);
-                    console.log(nonce);
+                    console.log('Transaction nonce: ' + nonce);
                     //recipient address
-                    var toAddressHex = web3.toHex(addresses[i]);
+                    //var toAddressHex = web3.toHex(addresses[i]);
 
                     //amount to send
-                    var valueAmount = amounts[i] * tokenMultiplier;
-                    var valueAmountHex = web3.toHex(valueAmount);
+                    var valueAmount = web3.toHex(amounts[i] * tokenMultiplier);
 
                     //data
-                    data = contract.transfer.getData(addresses[i], amounts[i]);
+                    data = contract.transfer.getData(addresses[i], valueAmount);
+
+                    /* console.log('Nonce hex ' + nonceHex);
+                     console.log('Gas price ' + gasPrice);
+                     console.log('Gas limit ' + gasLimit);
+                     console.log('Contract address ' + contract.address);
+                     console.log('Data ' + data);
+                     console.log('Address,valueamount ' + addresses[i] + '\n' + valueAmount);*/
 
                     //transaction object
                     var rawTx = {
@@ -266,8 +278,7 @@ class MassSender {
                         gasPrice: gasPrice,
                         gasLimit: gasLimit,
                         to: contract.address,
-                        from: web3.eth.defaultAccount,
-                        value: valueAmountHex,
+                        value: '0x00',
                         data: data
                     }
 
@@ -275,28 +286,25 @@ class MassSender {
                     tx.sign(privateKey);
 
                     var serializedTx = tx.serialize();
-                    console.log(`0x${serializedTx.toString('hex')}`);
+                    //console.log(`0x${serializedTx.toString('hex')}`);
 
                     //send
                     web3.eth.sendRawTransaction(`0x${serializedTx.toString('hex')}`, function (err, hash) {
                         if (err)
                             console.log(err);
                         else
-                            console.log(hash);
+                            console.log('Transaction hash: ' + hash);
                     });
 
                     transactionCount++;
 
                 } else {
-                    console.log('Transactions sent.');
                     i == addresses.length;
                 }
             }
-
-            //delete password
-            password = '';
-
         });
+        console.log('Transactions sent.');
+
     }
 
     run(argString) {
@@ -333,7 +341,11 @@ class MassSender {
         });
 
         //sets the default account (sender account)
-        web3.eth.defaultAccount = `0x${this.getWalletAddr(defaults.wallet.toString())}`;
+        web3.eth.defaultAccount = this.checkHex(this.getWalletAddr(defaults.wallet.toString()));
+
+        //sets the contract address
+        contractAddress = defaults.contractAddress;
+        contract = web3.eth.contract(configFile.abi).at(this.checkHex(configFile.contractAddress));
 
         //sets the offset
         offset = defaults.offset;
@@ -354,7 +366,7 @@ class MassSender {
         //if the user is ready, run transaction method
         if (this.checkRequiredParams(defaults.wallet, defaults.csv, defaults.contractAddress, defaults.gasLimit, defaults.gasPrice)) {
 
-            nonce = web3.eth.getTransactionCount(web3.eth.defaultAccount, "pending");
+            nonce = web3.eth.getTransactionCount(web3.eth.defaultAccount, 'pending');
 
             let that = this;
 
