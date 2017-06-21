@@ -303,8 +303,6 @@ class MassSender {
                 }
             }
         });
-        console.log('Transactions sent.');
-
     }
 
     run(argString) {

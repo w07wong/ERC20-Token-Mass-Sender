@@ -7,6 +7,6 @@ module.exports = {
     'tokenDecimal': 4,
     'offset': 0,
     'batch': '',
-    'gasPrice': 4000000000, // 4 Gwei
+    'gasPrice': 10000000000, // 4 Gwei
     'gasLimit': 250000
 };
