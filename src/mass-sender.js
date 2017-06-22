@@ -282,6 +282,7 @@ class MassSender {
                         data: data
                     }
 
+
                     var tx = new Tx(rawTx);
                     tx.sign(privateKey);
 
